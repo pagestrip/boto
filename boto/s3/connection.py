@@ -67,11 +67,11 @@ def assert_case_insensitive(f):
         if len(args) == 3 and check_lowercase_bucketname(args[2]):
             pass
         return f(*args, **kwargs)
+
     return wrapper
 
 
 class _CallingFormat(object):
-
     def get_bucket_server(self, server, bucket):
         return ''
 
@@ -100,21 +100,18 @@ class _CallingFormat(object):
 
 
 class SubdomainCallingFormat(_CallingFormat):
-
     @assert_case_insensitive
     def get_bucket_server(self, server, bucket):
         return '%s.%s' % (bucket, server)
 
 
 class VHostCallingFormat(_CallingFormat):
-
     @assert_case_insensitive
     def get_bucket_server(self, server, bucket):
         return bucket
 
 
 class OrdinaryCallingFormat(_CallingFormat):
-
     def get_bucket_server(self, server, bucket):
         return server
 
@@ -127,7 +124,6 @@ class OrdinaryCallingFormat(_CallingFormat):
 
 
 class ProtocolIndependentOrdinaryCallingFormat(OrdinaryCallingFormat):
-
     def build_url_base(self, connection, protocol, server, bucket, key=''):
         url_base = '//'
         url_base += self.build_host(server, bucket)
@@ -162,17 +158,31 @@ class HostRequiredError(BotoClientError):
 class S3Connection(AWSAuthConnection):
 
     DefaultHost = 's3.amazonaws.com'
-    DefaultCallingFormat = boto.config.get('s3', 'calling_format', 'boto.s3.connection.SubdomainCallingFormat')
+    DefaultCallingFormat = boto.config.get(
+        's3', 'calling_format', 'boto.s3.connection.SubdomainCallingFormat')
     QueryString = 'Signature=%s&Expires=%d&AWSAccessKeyId=%s'
 
-    def __init__(self, aws_access_key_id=None, aws_secret_access_key=None,
-                 is_secure=True, port=None, proxy=None, proxy_port=None,
-                 proxy_user=None, proxy_pass=None,
-                 host=NoHostProvided, debug=0, https_connection_factory=None,
-                 calling_format=DefaultCallingFormat, path='/',
-                 provider='aws', bucket_class=Bucket, security_token=None,
-                 suppress_consec_slashes=True, anon=False,
-                 validate_certs=None, profile_name=None):
+    def __init__(self,
+                 aws_access_key_id=None,
+                 aws_secret_access_key=None,
+                 is_secure=True,
+                 port=None,
+                 proxy=None,
+                 proxy_port=None,
+                 proxy_user=None,
+                 proxy_pass=None,
+                 host=NoHostProvided,
+                 debug=0,
+                 https_connection_factory=None,
+                 calling_format=DefaultCallingFormat,
+                 path='/',
+                 provider='aws',
+                 bucket_class=Bucket,
+                 security_token=None,
+                 suppress_consec_slashes=True,
+                 anon=False,
+                 validate_certs=None,
+                 profile_name=None):
         no_host_provided = False
         # Try falling back to the boto config file's value, if present.
         if host is NoHostProvided:
@@ -181,24 +191,34 @@ class S3Connection(AWSAuthConnection):
                 host = self.DefaultHost
                 no_host_provided = True
         if isinstance(calling_format, six.string_types):
-            calling_format=boto.utils.find_class(calling_format)()
+            calling_format = boto.utils.find_class(calling_format)()
         self.calling_format = calling_format
         self.bucket_class = bucket_class
         self.anon = anon
-        super(S3Connection, self).__init__(host,
-                aws_access_key_id, aws_secret_access_key,
-                is_secure, port, proxy, proxy_port, proxy_user, proxy_pass,
-                debug=debug, https_connection_factory=https_connection_factory,
-                path=path, provider=provider, security_token=security_token,
-                suppress_consec_slashes=suppress_consec_slashes,
-                validate_certs=validate_certs, profile_name=profile_name)
+        super(S3Connection, self).__init__(
+            host,
+            aws_access_key_id,
+            aws_secret_access_key,
+            is_secure,
+            port,
+            proxy,
+            proxy_port,
+            proxy_user,
+            proxy_pass,
+            debug=debug,
+            https_connection_factory=https_connection_factory,
+            path=path,
+            provider=provider,
+            security_token=security_token,
+            suppress_consec_slashes=suppress_consec_slashes,
+            validate_certs=validate_certs,
+            profile_name=profile_name)
         # We need to delay until after the call to ``super`` before checking
         # to see if SigV4 is in use.
         if no_host_provided:
             if 'hmac-v4-s3' in self._required_auth_capability():
                 raise HostRequiredError(
-                    "When using SigV4, you must specify a 'host' parameter."
-                )
+                    "When using SigV4, you must specify a 'host' parameter.")
 
     @detect_potential_s3sigv4
     def _required_auth_capability(self):
@@ -233,15 +253,21 @@ class S3Connection(AWSAuthConnection):
             'Policy document must include a valid expiration Time object'
 
         # Convert conditions object mappings to condition statements
-        conditions = [x.decode('utf-8') for x in conditions]
+
         return '{"expiration": "%s",\n"conditions": [%s]}' % \
             (time.strftime(boto.utils.ISO8601, expiration_time), ",".join(conditions))
 
-    def build_post_form_args(self, bucket_name, key, expires_in=6000,
-                             acl=None, success_action_redirect=None,
+    def build_post_form_args(self,
+                             bucket_name,
+                             key,
+                             expires_in=6000,
+                             acl=None,
+                             success_action_redirect=None,
                              max_content_length=None,
-                             http_method='http', fields=None,
-                             conditions=None, storage_class='STANDARD',
+                             http_method='http',
+                             fields=None,
+                             conditions=None,
+                             storage_class='STANDARD',
                              server_side_encryption=None):
         """
         Taken from the AWS book Python examples and modified for use with boto
@@ -300,47 +326,63 @@ class S3Connection(AWSAuthConnection):
         if conditions is None:
             conditions = []
         expiration = time.gmtime(int(time.time() + expires_in))
-        key = key.encode('utf-8')
 
         # Generate policy document
         conditions.append('{"bucket": "%s"}' % bucket_name)
         if key.endswith("${filename}"):
-            conditions.append('["starts-with", "$key", "%s"]' % key[:-len("${filename}")])
+            conditions.append(
+                '["starts-with", "$key", "%s"]' % key[:-len("${filename}")])
         else:
             conditions.append('{"key": "%s"}' % key)
         if acl:
             conditions.append('{"acl": "%s"}' % acl)
             fields.append({"name": "acl", "value": acl})
         if success_action_redirect:
-            conditions.append('{"success_action_redirect": "%s"}' % success_action_redirect)
-            fields.append({"name": "success_action_redirect", "value": success_action_redirect})
+            conditions.append(
+                '{"success_action_redirect": "%s"}' % success_action_redirect)
+            fields.append({
+                "name": "success_action_redirect",
+                "value": success_action_redirect
+            })
         if max_content_length:
-            conditions.append('["content-length-range", 0, %i]' % max_content_length)
+            conditions.append(
+                '["content-length-range", 0, %i]' % max_content_length)
 
         if self.provider.security_token:
-            fields.append({'name': 'x-amz-security-token',
-                           'value': self.provider.security_token})
-            conditions.append('{"x-amz-security-token": "%s"}' % self.provider.security_token)
+            fields.append({
+                'name': 'x-amz-security-token',
+                'value': self.provider.security_token
+            })
+            conditions.append('{"x-amz-security-token": "%s"}' %
+                              self.provider.security_token)
 
         if storage_class:
-            fields.append({'name': 'x-amz-storage-class',
-                           'value': storage_class})
+            fields.append({
+                'name': 'x-amz-storage-class',
+                'value': storage_class
+            })
             conditions.append('{"x-amz-storage-class": "%s"}' % storage_class)
 
         if server_side_encryption:
-            fields.append({'name': 'x-amz-server-side-encryption',
-                           'value': server_side_encryption})
-            conditions.append('{"x-amz-server-side-encryption": "%s"}' % server_side_encryption)
+            fields.append({
+                'name': 'x-amz-server-side-encryption',
+                'value': server_side_encryption
+            })
+            conditions.append('{"x-amz-server-side-encryption": "%s"}' %
+                              server_side_encryption)
 
         policy = self.build_post_policy(expiration, conditions)
 
         # Add the base64-encoded policy document as the 'policy' field
-        policy_b64 = base64.b64encode(policy.encode('utf-8'))
+
+        policy_b64 = base64.b64encode(policy.encode('utf-8')).decode('utf-8')
         fields.append({"name": "policy", "value": policy_b64})
 
         # Add the AWS access key as the 'AWSAccessKeyId' field
-        fields.append({"name": "AWSAccessKeyId",
-                       "value": self.aws_access_key_id})
+        fields.append({
+            "name": "AWSAccessKeyId",
+            "value": self.aws_access_key_id
+        })
 
         # Add signature for encoded policy document as the
         # 'signature' field
@@ -349,16 +391,22 @@ class S3Connection(AWSAuthConnection):
         fields.append({"name": "key", "value": key})
 
         # HTTPS protocol will be used if the secure HTTP option is enabled.
-        url = '%s://%s/' % (http_method,
-                            self.calling_format.build_host(self.server_name(),
-                                                           bucket_name))
+        url = '%s://%s/' % (
+            http_method,
+            self.calling_format.build_host(self.server_name(), bucket_name))
 
         return {"action": url, "fields": fields}
 
-    def generate_url_sigv4(self, expires_in, method, bucket='', key='',
-                            headers=None, force_http=False,
-                            response_headers=None, version_id=None,
-                            iso_date=None):
+    def generate_url_sigv4(self,
+                           expires_in,
+                           method,
+                           bucket='',
+                           key='',
+                           headers=None,
+                           force_http=False,
+                           response_headers=None,
+                           version_id=None,
+                           iso_date=None):
         path = self.calling_format.build_path_base(bucket, key)
         auth_path = self.calling_format.build_auth_path(bucket, key)
         host = self.calling_format.build_host(self.server_name(), bucket)
@@ -374,21 +422,34 @@ class S3Connection(AWSAuthConnection):
         if response_headers is not None:
             params.update(response_headers)
 
-        http_request = self.build_base_http_request(method, path, auth_path,
-                                                    headers=headers, host=host,
-                                                    params=params)
+        http_request = self.build_base_http_request(
+            method, path, auth_path, headers=headers, host=host, params=params)
 
-        return self._auth_handler.presign(http_request, expires_in,
-                                          iso_date=iso_date)
+        return self._auth_handler.presign(
+            http_request, expires_in, iso_date=iso_date)
 
-    def generate_url(self, expires_in, method, bucket='', key='', headers=None,
-                     query_auth=True, force_http=False, response_headers=None,
-                     expires_in_absolute=False, version_id=None):
+    def generate_url(self,
+                     expires_in,
+                     method,
+                     bucket='',
+                     key='',
+                     headers=None,
+                     query_auth=True,
+                     force_http=False,
+                     response_headers=None,
+                     expires_in_absolute=False,
+                     version_id=None):
         if self._auth_handler.capability[0] == 'hmac-v4-s3' and query_auth:
             # Handle the special sigv4 case
-            return self.generate_url_sigv4(expires_in, method, bucket=bucket,
-                key=key, headers=headers, force_http=force_http,
-                response_headers=response_headers, version_id=version_id)
+            return self.generate_url_sigv4(
+                expires_in,
+                method,
+                bucket=bucket,
+                key=key,
+                headers=headers,
+                force_http=force_http,
+                response_headers=response_headers,
+                version_id=version_id)
 
         headers = headers or {}
         if expires_in_absolute:
@@ -436,16 +497,15 @@ class S3Connection(AWSAuthConnection):
         else:
             protocol = self.protocol
             port = self.port
-        return self.calling_format.build_url_base(self, protocol,
-                                                  self.server_name(port),
-                                                  bucket, key) + query_part
+        return self.calling_format.build_url_base(
+            self, protocol, self.server_name(port), bucket, key) + query_part
 
     def get_all_buckets(self, headers=None):
         response = self.make_request('GET', headers=headers)
         body = response.read()
         if response.status > 300:
-            raise self.provider.storage_response_error(
-                response.status, response.reason, body)
+            raise self.provider.storage_response_error(response.status,
+                                                       response.reason, body)
         rs = ResultSet([('Bucket', self.bucket_class)])
         h = handler.XmlHandler(rs, self)
         if not isinstance(body, bytes):
@@ -533,28 +593,22 @@ class S3Connection(AWSAuthConnection):
         elif response.status == 403:
             # For backward-compatibility, we'll populate part of the exception
             # with the most-common default.
-            err = self.provider.storage_response_error(
-                response.status,
-                response.reason,
-                body
-            )
+            err = self.provider.storage_response_error(response.status,
+                                                       response.reason, body)
             err.error_code = 'AccessDenied'
             err.error_message = 'Access Denied'
             raise err
         elif response.status == 404:
             # For backward-compatibility, we'll populate part of the exception
             # with the most-common default.
-            err = self.provider.storage_response_error(
-                response.status,
-                response.reason,
-                body
-            )
+            err = self.provider.storage_response_error(response.status,
+                                                       response.reason, body)
             err.error_code = 'NoSuchBucket'
             err.error_message = 'The specified bucket does not exist'
             raise err
         else:
-            raise self.provider.storage_response_error(
-                response.status, response.reason, body)
+            raise self.provider.storage_response_error(response.status,
+                                                       response.reason, body)
 
     def lookup(self, bucket_name, validate=True, headers=None):
         """
@@ -581,8 +635,11 @@ class S3Connection(AWSAuthConnection):
             bucket = None
         return bucket
 
-    def create_bucket(self, bucket_name, headers=None,
-                      location=Location.DEFAULT, policy=None):
+    def create_bucket(self,
+                      bucket_name,
+                      headers=None,
+                      location=Location.DEFAULT,
+                      policy=None):
         """
         Creates a new located bucket. By default it's in the USA. You can pass
         Location.EU to create a European bucket (S3) or European Union bucket
@@ -616,17 +673,17 @@ class S3Connection(AWSAuthConnection):
         else:
             data = '<CreateBucketConfiguration><LocationConstraint>' + \
                     location + '</LocationConstraint></CreateBucketConfiguration>'
-        response = self.make_request('PUT', bucket_name, headers=headers,
-                data=data)
+        response = self.make_request(
+            'PUT', bucket_name, headers=headers, data=data)
         body = response.read()
         if response.status == 409:
-            raise self.provider.storage_create_error(
-                response.status, response.reason, body)
+            raise self.provider.storage_create_error(response.status,
+                                                     response.reason, body)
         if response.status == 200:
             return self.bucket_class(self, bucket_name)
         else:
-            raise self.provider.storage_response_error(
-                response.status, response.reason, body)
+            raise self.provider.storage_response_error(response.status,
+                                                       response.reason, body)
 
     def delete_bucket(self, bucket, headers=None):
         """
@@ -645,11 +702,18 @@ class S3Connection(AWSAuthConnection):
         response = self.make_request('DELETE', bucket, headers=headers)
         body = response.read()
         if response.status != 204:
-            raise self.provider.storage_response_error(
-                response.status, response.reason, body)
+            raise self.provider.storage_response_error(response.status,
+                                                       response.reason, body)
 
-    def make_request(self, method, bucket='', key='', headers=None, data='',
-                     query_args=None, sender=None, override_num_retries=None,
+    def make_request(self,
+                     method,
+                     bucket='',
+                     key='',
+                     headers=None,
+                     data='',
+                     query_args=None,
+                     sender=None,
+                     override_num_retries=None,
                      retry_handler=None):
         if isinstance(bucket, self.bucket_class):
             bucket = bucket.name
@@ -666,8 +730,12 @@ class S3Connection(AWSAuthConnection):
             auth_path += '?' + query_args
             boto.log.debug('auth_path=%s' % auth_path)
         return super(S3Connection, self).make_request(
-            method, path, headers,
-            data, host, auth_path, sender,
+            method,
+            path,
+            headers,
+            data,
+            host,
+            auth_path,
+            sender,
             override_num_retries=override_num_retries,
-            retry_handler=retry_handler
-        )
+            retry_handler=retry_handler)
