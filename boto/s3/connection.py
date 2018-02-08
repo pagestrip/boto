@@ -233,7 +233,7 @@ class S3Connection(AWSAuthConnection):
             'Policy document must include a valid expiration Time object'
 
         # Convert conditions object mappings to condition statements
-
+        conditions = [x.decode('utf-8') for x in conditions]
         return '{"expiration": "%s",\n"conditions": [%s]}' % \
             (time.strftime(boto.utils.ISO8601, expiration_time), ",".join(conditions))
 
@@ -300,6 +300,7 @@ class S3Connection(AWSAuthConnection):
         if conditions is None:
             conditions = []
         expiration = time.gmtime(int(time.time() + expires_in))
+        key = key.encode('utf-8')
 
         # Generate policy document
         conditions.append('{"bucket": "%s"}' % bucket_name)
@@ -334,7 +335,7 @@ class S3Connection(AWSAuthConnection):
         policy = self.build_post_policy(expiration, conditions)
 
         # Add the base64-encoded policy document as the 'policy' field
-        policy_b64 = base64.b64encode(policy)
+        policy_b64 = base64.b64encode(policy.encode('utf-8'))
         fields.append({"name": "policy", "value": policy_b64})
 
         # Add the AWS access key as the 'AWSAccessKeyId' field
